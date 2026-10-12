@@ -113,3 +113,79 @@ summarize(total_cigarette_butts = sum(cigarette_butts, na.rm = TRUE))
 ```
 There are `r nrow(trash_wheel_combined)` observations in the combined dataset, including variables for dumpster number, month, year, date, trash weight (tons) and volume (cubic yards), plastic bottles, polystyrene, cigarette butts, glass bottles, plastic bags, wrappers, sports balls, and homes powered. The total weight of trash collected by Professor Trash Wheel was `r sum(professor_trash_wheel$weight_tons, na.rm = TRUE)` tons. The total number of cigarette butts collected by Gwynnda in June of 2022 was `r sum(gwynnda_trash_wheel$cigarette_butts[gwynnda_trash_wheel$month == "June" & gwynnda_trash_wheel$year == "2022"], na.rm = TRUE)`.
 
+# Problem 3
+```{r}
+mci_baseline = read_csv("data/data_mci/MCI_baseline.csv", skip = 1, na = ".") |>
+janitor::clean_names()
+
+# Encode sex and APOE4 to categorical variables
+mci_baseline = mci_baseline |>
+mutate(sex = as.factor(sex), apoe4 = as.factor(apoe4))
+
+# Remove participants who don't meet inclusion criteria
+mci_baseline = mci_baseline |>
+filter(is.na(age_at_onset) | age_at_onset > current_age)
+nrow(mci_baseline)
+head(mci_baseline)
+
+# Participants recruited
+mci_baseline_original = read_csv("data/data_mci/MCI_baseline.csv", skip = 1, na = ".") |>
+janitor::clean_names()
+nrow(mci_baseline_original)
+
+# Participants that developed MCI
+mci_baseline |>
+filter(!is.na(age_at_onset)) |>
+nrow()
+
+# Average baseline age
+mci_baseline |>
+summarize(average_baseline_age = mean(current_age, na.rm = TRUE))
+
+# Proportion of women who're APOE4 carriers
+mci_baseline |>
+filter(sex == "0") |>
+summarize(proportion_apoe4 = mean(apoe4 == "1", na.rm = TRUE))
+```
+When importing, the first row was skipped since it had descriptions of variables, periods were converted to missing so they'd be treated as being NA. Janitor::clean_names() was used to clean the variable names so they would be standardized names. As.factor() was used to convert sec and APOE4 status to categorical variables. Participants who developed MCI at or before their baseline age were excluded because the study needed participants to be free of MCI at baseline.
+
+The dataset includes variables for ID, current age, sex, education, APOE4 carrier status and age of onset for MCI. 483 participants were recruited, of which 93 developed MCI during the follow-up period. The average baseline age was 65.03 years and a proportion of 0.3 of women were APOE4 carriers. 
+
+```{r}
+mci_amyloid = read_csv("data/data_mci/mci_amyloid.csv", skip = 1, na = c("", "NA", ".", "Na")) |>
+janitor::clean_names()
+
+mci_amyloid = mci_amyloid |>
+pivot_longer(cols = baseline:time_8, names_to = "time", values_to = "amyloid")
+
+nrow(mci_amyloid)
+head(mci_amyloid)
+```
+When importing, the first row was skipped since it had descriptions of variables. Missing values like "Na", were converted to NA. Janitor::clean_names() was used to clean the variable names so they would be standardized names. Pivot_longer() was used to convert the dataset so that each row corresponds to a participant's amyloid measurement at a specific time. 
+
+The dataset includes variables for ID, time, and amyloid biomarker measurements. There were 487 participants with measurements recorded at baseline and at 2, 4, 6, and 8 years. After tidying, the dataset has 2435 rows and 3 columns, and some have missing amyloid measurements.
+
+```{r}
+# Participants who only appear in baseline dataset
+only_baseline = anti_join(mci_baseline, mci_amyloid, by = c("id" = "study_id"))
+nrow(only_baseline)
+
+# Participants who only appear in amyloid dataset
+only_amyloid = anti_join(mci_amyloid, mci_baseline, by = c("study_id" = "id"))
+only_amyloid |>
+distinct(study_id) |>
+nrow()
+
+# combine
+combined_mci = inner_join(mci_baseline, mci_amyloid, by = c("id" = "study_id"))
+nrow(combined_mci)
+head(combined_mci)
+
+# export as csv
+write.csv(combined_mci, "data/combined_mci.csv", row.names = FALSE)
+```
+8 participants only appear in the baseline dataset, and 16 participants only appear in the amyloid dataset. 
+
+Anti_join() was used to see which participants appeared in only the baseline of amyloid dataset. Inner_join() was used to combine the datasets only containing people who were in both. It has 471 participants, 2355 rows, and 8 variables with id, current age, sex, education, APOE4 status, age at onset, time and amyloid measurement.
+
+
