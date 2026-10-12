@@ -10,4 +10,17 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Problem 1
+```{r}
+library(tidyverse)
+nyc_transit = read_csv("data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv")
+nyc_transit = janitor::clean_names(nyc_transit)
+nyc_transit = select(nyc_transit,
+  line, division, station_name, station_latitude, station_longitude, route1:route11, entry, vending, entrance_type, ada
+)
+
+nyc_transit = mutate(nyc_transit, entry = case_match(
+  entry, "YES" ~ TRUE,"NO"~ FALSE
+  ))
+
+```
 
