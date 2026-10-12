@@ -14,13 +14,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 nyc_transit = read_csv("data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv")
 nyc_transit = janitor::clean_names(nyc_transit)
-nyc_transit = select(nyc_transit,
-  line, division, station_name, station_latitude, station_longitude, route1:route11, entry, vending, entrance_type, ada
-)
+nyc_transit = select(nyc_transit,line, division, station_name, station_latitude, station_longitude, route1:route11, entry, vending, entrance_type, ada)
 
-nyc_transit = mutate(nyc_transit, entry = case_match(
-  entry, "YES" ~ TRUE,"NO"~ FALSE
-  ))
+nyc_transit = mutate(nyc_transit, entry = case_match(entry, "YES" ~ TRUE,"NO"~ FALSE))
 ```
 This NYC transit dataset contains information on subway line, station name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance. The dataset was cleaned using janitor::clean_names(), and the specific variables were chosen using select(), and mutate and case_match were used to convert the entry variable from yes/no to true/false. Overall, the dataset has 1868 rows and 20 columns, but routes are spread across multiple columns so the data is not tidy. 
 
@@ -41,14 +37,79 @@ The dataset has 465 distinct subway stations, and they are identified by both na
 # Reformat route data
 nyc_transit_long = nyc_transit |>
 mutate(across(route1:route11, as.character)) |>
-pivot_longer(route1:route11, names_to = "route_number", values_to = "route_name"
-)
+pivot_longer(route1:route11, names_to = "route_number", values_to = "route_name")
 
-#Stations serving A train
+# Stations serving A train
 nrow(distinct(filter(nyc_transit_long, route_name == "A"), line, station_name))
-#ADA compliant stations serving A train
+# ADA compliant stations serving A train
 nrow(distinct(filter(nyc_transit_long, route_name == "A" & ada == TRUE), line, station_name))
 
 ```
 There are 60 distinct stations serving the A train, of which 17 are ADA compliant.
+
+#Problem 2
+```{r}
+library(readxl)
+
+# Mr. Trash Wheel dataset
+trash_wheel = read_excel("data/202610 Trash Wheel Collection Data.xlsx",
+sheet = "Mr. Trash Wheel",
+range = "A2:N742")
+trash_wheel = janitor::clean_names(trash_wheel)
+
+# round number of sports balls
+trash_wheel = trash_wheel |>
+mutate(sports_balls = as.integer(round(sports_balls)))
+head(trash_wheel)
+
+# Professor Trash Wheel dataset
+professor_trash_wheel = read_excel("data/202610 Trash Wheel Collection Data.xlsx",
+sheet = "Professor Trash Wheel",
+range = "A2:M139") |>
+janitor::clean_names() |>
+mutate(trash_wheel = "Professor Trash Wheel")
+head(professor_trash_wheel)
+
+# Gwynnda dataset
+gwynnda_trash_wheel = read_excel("data/202610 Trash Wheel Collection Data.xlsx",
+sheet = "Gwynnda the Good Wheel of the W",
+range = "A2:L394") |>
+janitor::clean_names() |>
+mutate(trash_wheel = "Gwynnda")
+head(gwynnda_trash_wheel)
+
+# Combine datasets
+# Make 'year' and 'plastic_bottles' variable same type across datasets
+trash_wheel = trash_wheel |>
+mutate(year = as.character(year),
+plastic_bottles = as.character(plastic_bottles))
+
+professor_trash_wheel = professor_trash_wheel |>
+mutate(year = as.character(year),
+plastic_bottles = as.character(plastic_bottles))
+
+gwynnda_trash_wheel = gwynnda_trash_wheel |>
+mutate(year = as.character(year),
+plastic_bottles = as.character(plastic_bottles))
+
+# Combine
+trash_wheel_combined = bind_rows(trash_wheel, professor_trash_wheel, gwynnda_trash_wheel)
+
+head(trash_wheel_combined)
+
+# Observations
+nrow(trash_wheel_combined)
+
+# total weight of trash collected by Professor Trash Wheel
+professor_trash_wheel |>
+filter(trash_wheel == "Professor Trash Wheel") |>
+summarize(total_weight = sum(weight_tons, na.rm = TRUE))
+
+# number of cigarette butts collected by Gwynnda in June of 2022
+gwynnda_trash_wheel |>
+filter(month == "June", year == "2022") |>
+summarize(total_cigarette_butts = sum(cigarette_butts, na.rm = TRUE))
+
+```
+There are `r nrow(trash_wheel_combined)` observations in the combined dataset, including variables for dumpster number, month, year, date, trash weight (tons) and volume (cubic yards), plastic bottles, polystyrene, cigarette butts, glass bottles, plastic bags, wrappers, sports balls, and homes powered. The total weight of trash collected by Professor Trash Wheel was `r sum(professor_trash_wheel$weight_tons, na.rm = TRUE)` tons. The total number of cigarette butts collected by Gwynnda in June of 2022 was `r sum(gwynnda_trash_wheel$cigarette_butts[gwynnda_trash_wheel$month == "June" & gwynnda_trash_wheel$year == "2022"], na.rm = TRUE)`.
 
