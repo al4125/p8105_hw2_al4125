@@ -21,6 +21,34 @@ nyc_transit = select(nyc_transit,
 nyc_transit = mutate(nyc_transit, entry = case_match(
   entry, "YES" ~ TRUE,"NO"~ FALSE
   ))
+```
+This NYC transit dataset contains information on subway line, station name, station latitude / longitude, routes served, entry, vending, entrance type, and ADA compliance. The dataset was cleaned using janitor::clean_names(), and the specific variables were chosen using select(), and mutate and case_match were used to convert the entry variable from yes/no to true/false. Overall, the dataset has 1868 rows and 20 columns, but routes are spread across multiple columns so the data is not tidy. 
+
+```{r}
+#distinct stations
+nrow(distinct(nyc_transit, line, station_name))
+#ADA compliant stations
+nrow(distinct(filter(nyc_transit, ada == TRUE), line, station_name))
+#Proportion of station entrances/exits without vending allow entrance?
+no_vending = filter(nyc_transit, vending == "NO")
+mean(no_vending$entry, na.rm = TRUE)
+```
+The dataset has 465 distinct subway stations, and they are identified by both name and by line. 
+84 stations are ADA compliant.
+0.38 of station entrances / exits without vending allow entrance.
+
+```{r}
+# Reformat route data
+nyc_transit_long = nyc_transit |>
+mutate(across(route1:route11, as.character)) |>
+pivot_longer(route1:route11, names_to = "route_number", values_to = "route_name"
+)
+
+#Stations serving A train
+nrow(distinct(filter(nyc_transit_long, route_name == "A"), line, station_name))
+#ADA compliant stations serving A train
+nrow(distinct(filter(nyc_transit_long, route_name == "A" & ada == TRUE), line, station_name))
 
 ```
+There are 60 distinct stations serving the A train, of which 17 are ADA compliant.
 
