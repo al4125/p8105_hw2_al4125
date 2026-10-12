@@ -1,0 +1,13 @@
+---
+title: "p8105_hw2_al4125"
+author: "Ananya Lahiri"
+date: "2026-10-12"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Problem 1
+
